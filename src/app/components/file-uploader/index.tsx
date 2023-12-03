@@ -2,19 +2,16 @@
 import fileIcon from '@/assets/file-icon.png'
 import Image from 'next/image'
 import s from './file-uploader.module.css'
-import {
-	CSSProperties,
-	ChangeEvent,
-	FormEvent,
-	useRef,
-	useState,
-} from 'react'
+import { CSSProperties, ChangeEvent, FormEvent, useRef, useState } from 'react'
+import { generateVideoThumbnail } from '@/app/lib/utils'
 
 export const FileUploader = () => {
 	const [percents, setPercents] = useState(0)
 	const [video, setVideo] = useState<Blob>()
+	const [poster, setPoster] = useState<string | undefined>()
 	const uploadRef = useRef<HTMLInputElement>(null)
 	const videoRef = useRef<HTMLVideoElement>(null)
+	const canvasRef = useRef<HTMLCanvasElement>(null)
 
 	const handleInputClick = () => {
 		if (uploadRef.current) {
@@ -35,11 +32,19 @@ export const FileUploader = () => {
 			}
 		}
 
-		reader.onload = (e: ProgressEvent<FileReader>) => {
+		reader.onload = async (e: ProgressEvent<FileReader>) => {
 			if (e.target?.result && videoRef.current) {
 				setPercents(100)
-				videoRef.current.src = e.target.result.toString()
-				videoRef.current.currentTime = 0.4
+
+				const thumbNailUrl = await generateVideoThumbnail(
+					video,
+					videoRef,
+					canvasRef
+				)
+
+				if (typeof thumbNailUrl === 'string') {
+					setPoster(thumbNailUrl)
+				}
 			}
 		}
 		reader.readAsDataURL(video)
@@ -74,8 +79,16 @@ export const FileUploader = () => {
 					/>
 					<input className={s.submit} type='submit' value='Send' />
 				</form>
-				<video ref={videoRef} controls loop className={s.preview} />
+				<video
+					muted
+					poster={poster}
+					ref={videoRef}
+					controls
+					loop
+					className={s.preview}
+				/>
 			</section>
+			<canvas ref={canvasRef} style={{ display: 'none' }} />
 			<div className={s.progressBar}>
 				<p>{`${percents}%`}</p>
 				<span style={{ '--progress': `${percents}%` } as CSSProperties} />
