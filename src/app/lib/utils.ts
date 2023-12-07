@@ -4,7 +4,7 @@ const settings = {
 	percentsOfBlackPixels: 10, // for example we got 100 black pixels of 400 (400/100 = 4 so 25% ) at all inside 10/10 square on center of our preview, its more then 10% of the black pixels -  then we decide to skip video to half of his duration and get snapshot from it.
 }
 
-export const generateVideoThumbnail = (file: File) => {
+export const generateVideoThumbnail = (file: File, isRandom?: boolean) => {
 	return new Promise((resolve, reject) => {
 		const canvas = document.createElement('canvas')
 		const video = document.createElement('video')
@@ -28,7 +28,7 @@ export const generateVideoThumbnail = (file: File) => {
 				settings.squireInCanvasWH
 			)
 			const isBlackScreen = checkForFirstBlackFrame(imgData)
-			if (isBlackScreen) {
+			if (isBlackScreen && !isRandom) {
 				video.currentTime = Math.floor(video.duration / 2)
 				video.onseeked = () => {
 					ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight)
@@ -36,7 +36,15 @@ export const generateVideoThumbnail = (file: File) => {
 					return resolve(canvas.toDataURL('image/png'))
 				}
 			} else {
-				return resolve(canvas.toDataURL('image/png'))
+				const seekTo = isRandom
+					? Math.floor(Math.random() * video.duration + 1)
+					: 0
+				video.currentTime = seekTo
+				video.onseeked = () => {
+					ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight)
+					video.pause()
+					return resolve(canvas.toDataURL('image/png'))
+				}
 			}
 		}
 	})
@@ -50,6 +58,6 @@ const checkForFirstBlackFrame = (imgData: ImageData) => {
 			approximatelyBlackPixels += 1
 		}
 	}
-	console.log(approximatelyBlackPixels,length)
+	console.log(approximatelyBlackPixels, length)
 	return length / approximatelyBlackPixels < settings.percentsOfBlackPixels
 }

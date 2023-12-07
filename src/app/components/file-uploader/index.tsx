@@ -6,8 +6,9 @@ import { CSSProperties, ChangeEvent, FormEvent, useRef, useState } from 'react'
 import { generateVideoThumbnail } from '@/app/lib/utils'
 
 export const FileUploader = () => {
+	const [genSnap, setGenSnap] = useState<string | undefined>()
 	const [percents, setPercents] = useState(0)
-	const [video, setVideo] = useState<Blob>()
+	const [video, setVideo] = useState<File>()
 	const [videoUrl, setVideoUrl] = useState<string | undefined>()
 	const [poster, setPoster] = useState<string | undefined>()
 	const uploadRef = useRef<HTMLInputElement>(null)
@@ -52,6 +53,12 @@ export const FileUploader = () => {
 		console.log(formData.get('video'))
 	}
 
+	const handleGenerate = async () => {
+		if (!video) return alert('you should upload video first')
+		const url = await generateVideoThumbnail(video, true)
+		setGenSnap(url as string)
+	}
+
 	return (
 		<div className={s.wrapper}>
 			<h1> Upload your video</h1>
@@ -83,9 +90,15 @@ export const FileUploader = () => {
 					preload='none'
 					className={s.preview}
 				/>
-				<img src={poster} width={300} height={300} />
+				{genSnap && <img src={genSnap} width={300} height={300} />}
 			</section>
-
+			<button
+				style={{ backgroundColor: 'white', color: 'black', marginTop: '40px' }}
+				onClick={handleGenerate}
+				className={s.submit}
+			>
+				Generate snapshot
+			</button>
 			<div className={s.progressBar}>
 				<p>{`${percents}%`}</p>
 				<span style={{ '--progress': `${percents}%` } as CSSProperties} />
